@@ -314,6 +314,7 @@ func (self *manager) Start() error {
 	}
 
 	err = crio.Register(self, self.fsInfo, self.ignoreMetrics)
+	glog.V(5).Infof("SASHANK of the crio container factory failed: %v", err)
 	if err != nil {
 		glog.V(5).Infof("Registration of the crio container factory failed: %v", err)
 	}
