@@ -15,7 +15,8 @@
 GO := go
 pkgs  = $(shell $(GO) list ./... | grep -v vendor)
 
-all: presubmit build test
+#all: presubmit build test
+all: presubmit build
 
 test:
 	@echo ">> running tests"
