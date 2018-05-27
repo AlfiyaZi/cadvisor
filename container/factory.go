@@ -16,6 +16,7 @@ package container
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/google/cadvisor/manager/watcher"
@@ -99,6 +100,12 @@ func HasFactories() bool {
 func NewContainerHandler(name string, watchType watcher.ContainerWatchSource, inHostNamespace bool) (ContainerHandler, bool, error) {
 	factoriesLock.RLock()
 	defer factoriesLock.RUnlock()
+
+	if strings.Contains(name, "/mesos/") {
+		glog.V(3).Infof("SASHANK mesos")
+	} else if strings.Contains(name, "/docker/") {
+		glog.V(3).Infof("SASHANK docker")
+	}
 
 	// Create the ContainerHandler with the first factory that supports it.
 	for _, factory := range factories[watchType] {

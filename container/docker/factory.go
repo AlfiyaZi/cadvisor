@@ -173,6 +173,10 @@ func isContainerName(name string) bool {
 // Docker handles all containers under /docker
 func (self *dockerFactory) CanHandleAndAccept(name string) (bool, bool, error) {
 	// if the container is not associated with docker, we can't handle it or accept it.
+	if strings.Contains(name, "/docker/") {
+		glog.V(3).Infof("SASHANK docker")
+	}
+
 	if !isContainerName(name) {
 		return false, false, nil
 	}

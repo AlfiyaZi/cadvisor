@@ -49,6 +49,7 @@ if [ -n "$VERBOSE" ]; then
   echo "Building with -ldflags $ldflags"
 fi
 
-GOBIN=$PWD go build ${GO_FLAGS} -ldflags "${ldflags}" "${repo_path}"
+#GOBIN=$PWD go build ${GO_FLAGS} -ldflags "${ldflags}" "${repo_path}"
+GOBIN=$PWD go build ${GO_FLAGS} -gcflags "-N -l" -ldflags "${ldflags}" "${repo_path}"
 
 exit 0

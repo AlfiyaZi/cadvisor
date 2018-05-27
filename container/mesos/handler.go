@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/golang/glog"
 	"github.com/google/cadvisor/container"
 	"github.com/google/cadvisor/container/common"
 	containerlibcontainer "github.com/google/cadvisor/container/libcontainer"
@@ -92,6 +93,7 @@ func newMesosContainerHandler(
 
 	cinfo, _ := client.ContainerInfo(id)
 	labels := cinfo.labels
+	glog.V(5).Infof("SASHANK--->labels are: %v", labels)
 	pid := cinfo.cntr.Status.ExecutorPID
 
 	libcontainerHandler := containerlibcontainer.NewHandler(cgroupManager, rootFs, pid, ignoreMetrics)
