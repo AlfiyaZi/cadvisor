@@ -33,7 +33,7 @@ const MesosNamespace = "mesos"
 
 // Regexp that identifies mesos cgroups, containers started with
 // --cgroup-parent have another prefix than 'mesos'
-var mesosCgroupRegexp = regexp.MustCompile(`([a-z0-9]{64})`)
+var mesosCgroupRegexp = regexp.MustCompile(`([a-z-0-9]{36})`)
 
 type mesosFactory struct {
 	machineInfoFactory info.MachineInfoFactory
@@ -94,21 +94,21 @@ func isContainerName(name string) bool {
 // The mesos factory can handle any container.
 func (self *mesosFactory) CanHandleAndAccept(name string) (bool, bool, error) {
 	// if the container is not associated with mesos, we can't handle it or accept it.
-	/*	if !isContainerName(name) {
-			return false, false, nil
-		}
+	if !isContainerName(name) {
+		return false, false, nil
+	}
 
-		// Check if the container is known to mesos and it is active.
-		id := ContainerNameToMesosId(name)
+	// Check if the container is known to mesos and it is active.
+	id := ContainerNameToMesosId(name)
 
-		c, err := self.client.ContainerInfo(id)
-		if err != nil || c.cntr.Status.ExecutorPID <= 0 {
-			return false, true, fmt.Errorf("error getting running container: %v", err)
-		}
-	*/
-	accept := strings.Contains(name, "/mesos/")
-	return accept, accept, nil
-	//return true, true, nil
+	c, err := self.client.ContainerInfo(id)
+	if err != nil || c.cntr.Status.ExecutorPID <= 0 {
+		return false, true, fmt.Errorf("error getting running container: %v", err)
+	}
+
+	//	accept := strings.Contains(name, "/mesos/")
+	//	return accept, accept, nil
+	return true, true, nil
 }
 
 func (self *mesosFactory) DebugInfo() map[string][]string {
