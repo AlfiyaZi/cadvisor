@@ -53,6 +53,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"golang.org/x/net/context"
 	"k8s.io/utils/clock"
+	"io/ioutil"
 )
 
 var globalHousekeepingInterval = flag.Duration("global_housekeeping_interval", 1*time.Minute, "Interval between global housekeepings")
@@ -122,6 +123,9 @@ type Manager interface {
 
 	// Get ps output for a container.
 	GetProcessList(containerName string, options v2.RequestOptions) ([]v2.ProcessInfo, error)
+
+	// Get the number of open file descriptors for all the processes of a container
+	GetFDCount(psList []v2.ProcessInfo) (int, error)
 
 	// Get events streamed through passedChannel that fit the request.
 	WatchForEvents(request *events.Request) (*events.EventChannel, error)
@@ -882,6 +886,24 @@ func (m *manager) GetProcessList(containerName string, options v2.RequestOptions
 		}
 	}
 	return ps, nil
+}
+
+func (m *manager) GetFDCount(psList []v2.ProcessInfo) (int, error) {
+	count := 0
+	rootfs := "/"
+	if !m.inHostNamespace {
+		rootfs = "/rootfs"
+	}
+
+	for _, ps := range psList {
+		dirPath := path.Join(rootfs, "/proc", strconv.Itoa(ps.Pid), "fd")
+		fds, err := ioutil.ReadDir(dirPath)
+		if err != nil {
+			continue
+		}
+		count += len(fds)
+	}
+	return count, nil
 }
 
 func (m *manager) registerCollectors(collectorConfigs map[string]string, cont *containerData) error {

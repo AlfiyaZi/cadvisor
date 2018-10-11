@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/cadvisor/container"
 	info "github.com/google/cadvisor/info/v1"
+	"github.com/google/cadvisor/info/v2"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,6 +36,10 @@ type infoProvider interface {
 	GetVersionInfo() (*info.VersionInfo, error)
 	// GetMachineInfo provides information about the machine.
 	GetMachineInfo() (*info.MachineInfo, error)
+	// GetProcessList provides information about each container's processes
+	GetProcessList(containerName string, options v2.RequestOptions) ([]v2.ProcessInfo, error)
+	// GetFDCount provides information about the number of open file descriptors for a container
+	GetFDCount([]v2.ProcessInfo) (int, error)
 }
 
 // metricValue describes a single metric value for a given set of label values
@@ -926,6 +931,9 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 			rawLabels[l] = struct{}{}
 		}
 	}
+
+	psReq := makeProcessListRequest()
+
 	for _, container := range containers {
 		values := make([]string, 0, len(rawLabels))
 		labels := make([]string, 0, len(rawLabels))
@@ -957,6 +965,18 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, specMemoryValue(container.Spec.Memory.SwapLimit), values...)
 			desc = prometheus.NewDesc("container_spec_memory_reservation_limit_bytes", "Memory reservation limit for the container.", labels, nil)
 			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, specMemoryValue(container.Spec.Memory.Reservation), values...)
+		}
+
+		ps, err := c.infoProvider.GetProcessList(container.Name, psReq)
+		if err == nil {
+			desc = prometheus.NewDesc("container_num_processes", "Number of processes running inside the container.", labels, nil)
+			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(len(ps)), values...)
+
+			fd, err := c.infoProvider.GetFDCount(ps)
+			if err == nil {
+				desc = prometheus.NewDesc("container_num_fds", "Number of open file descriptors for the container.", labels, nil)
+				ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(fd), values...)
+			}
 		}
 
 		// Now for the actual metrics
@@ -995,6 +1015,13 @@ func (c *PrometheusCollector) collectMachineInfo(ch chan<- prometheus.Metric) {
 	}
 	ch <- prometheus.MustNewConstMetric(machineInfoCoresDesc, prometheus.GaugeValue, float64(machineInfo.NumCores))
 	ch <- prometheus.MustNewConstMetric(machineInfoMemoryDesc, prometheus.GaugeValue, float64(machineInfo.MemoryCapacity))
+}
+
+func makeProcessListRequest() v2.RequestOptions {
+	opt := v2.RequestOptions{
+		IdType:    v2.TypeName,
+	}
+	return opt
 }
 
 // Size after which we consider memory to be "unlimited". This is not
